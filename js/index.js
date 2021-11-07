@@ -1,77 +1,119 @@
 let canvas = document.getElementById('snake');
 let context = canvas.getContext('2d');
+let score = 0;
 const box = 32;
-const cobrinha = [
-    factoryCoordenada()
-];
+const cobrinha = [ factoryCoordenada() ];
 let comida = factoryCoordenada();
 let jogo;
-let direction = 'right';
-const moveCobrinha = {
+let direction = 'ArrowRight';
+
+const direcaoCobrinha = {
     ArrowDown: function() {
-        if( direction != 'up')
+        if( direction != 'ArrowUp')
         {
-            direction = 'down';
+            direction = 'ArrowDown';
         }
     },
     ArrowUp: function() {
-        if(direction != 'down')
+        if(direction != 'ArrowDown')
         {
-            direction = 'up';
+            direction = 'ArrowUp';
         }
     },
     ArrowRight: function() {
-        if(direction != 'left')
+        if(direction != 'ArrowLeft')
         {
-            direction = 'right';
+            direction = 'ArrowRight';
         }
     },
     ArrowLeft: function() {
-        if(direction != 'right')
+        if(direction != 'ArrowRight')
         {
-            direction = 'left';
+            direction = 'ArrowLeft';
         }
     },
 };
-let score = 0;
 
-function factoryCoordenada(){
+const moveCobrinha = {
+    ArrowDown: function() {
+        let [x,y] = getHead();
+
+        if(y > 15 * box)
+        {
+            return [x,0];
+        }
+
+        return [x, y+=box];
+    },
+    ArrowUp: function() {
+        let [x,y] = getHead();
+
+        if(y < 0)
+        {
+            return [x,16 * box];
+        }
+
+        return [x, y-=box];
+    },
+    ArrowRight: function() {
+        let [x,y] = getHead();
+
+        if(x > 15 * box)
+        {
+            return [0, y];
+        }
+
+        return [x+=box, y]
+    },
+    ArrowLeft: function() {
+        let [x,y] = getHead();
+
+        if(x < 0)
+        {
+            return [16 * box, y];
+        }
+
+        return [x-=box, y];
+    },
+};
+
+function factoryCoordenada(x = null,y = null){
     return {
-        x: Math.floor(Math.random() *15 +1) *box,
-        y: Math.floor(Math.random() *15 +1) *box
+        x: x != null ? x : Math.floor(Math.random() *15 +1) *box,
+        y: y != null ? y : Math.floor(Math.random() *15 +1) *box
     };
 }
 
 function criaCampo ()
 {
-    context.fillStyle = '#000';
+    context.fillStyle = '#2F4F4F';
     context.fillRect(0,0,16*box, 16*box);
 }
 
 function criaCobra() {
+
     for(var i=0; i<cobrinha.length; i++)
     {
 
-        context.fillStyle = 'green';
+        context.fillStyle = '#32CD32';
         context.fillRect(cobrinha[i].x,cobrinha[i].y, box, box);
+
     }
 }
 
-document.addEventListener('keydown', update);
-
 function update(event){
-   if(typeof  moveCobrinha[event.key] == 'function')
+   if(typeof  direcaoCobrinha[event.key] == 'function')
    {
-    moveCobrinha[event.key]();  
+    direcaoCobrinha[event.key]();  
    } 
 }
 
 function velocidade (){
- jogo = setInterval(iniciaJogo, 400-(score*10));
+ jogo = setInterval(iniciaJogo, 300-(score*10 <= 250 ? score*10 : 260));
 }
 
 function desenhacomida() {
-    context.fillStyle = 'red';
+    context.fillStyle = '#DC143C';
     context.fillRect(comida.x, comida.y, box, box);
 }
 
@@ -80,35 +122,40 @@ function registraPontos(valor){
     pontosLabel.innerHTML = valor;
 }
 
-function iniciaJogo () {
+function getHead(){
+    return [cobrinha[0].x, cobrinha[0].y];
+}
 
+function gameOver(){
+    clearInterval(jogo);
+    const resposta = confirm("Fim de Jogo\nPressione 'Ok' para reiniciar");
 
-    if(cobrinha[0].x > 15 *box && direction=='right')cobrinha[0].x=0;
-    if(cobrinha[0].x <0 *box && direction=='left')cobrinha[0].x=16*box;
-    if(cobrinha[0].y > 15 *box && direction=='down')cobrinha[0].y=0;
-    if(cobrinha[0].y <0 *box && direction=='up')cobrinha[0].y=16*box;
+    if(resposta)
+    {
+        window.location.reload();
+    }
+}
 
+function verificaFimJogo(){
     for(var i =1; i <cobrinha.length;i++)
     {
-        if(cobrinha[0].x == cobrinha[i].x && cobrinha[0].y == cobrinha[i].y)
+        if(getHead()[0] == cobrinha[i].x && getHead()[1] == cobrinha[i].y)
         {
-            clearInterval(jogo);
-            alert("Fim de Jogo\nPerssione F5 para reiniciar");
+            gameOver();
         }
     }
+}
 
+function iniciaJogo () {
+
+    let [snakeX, snakeY] = moveCobrinha[direction]();
+
+    verificaFimJogo();
     criaCampo();
     criaCobra();
     desenhacomida();
 
-    let snakeX = cobrinha[0].x,
-    snakeY = cobrinha[0].y;
-
-    if(direction == 'right') snakeX += box;
-    if(direction == 'left') snakeX -= box;
-    if(direction == 'up') snakeY -= box;
-    if(direction == 'down') snakeY += box;
-
+   
     if(snakeX != comida.x || snakeY != comida.y)
     {
         cobrinha.pop();
@@ -120,12 +167,8 @@ function iniciaJogo () {
         velocidade();
     }
 
-    newHead = {
-        x: snakeX,
-        y: snakeY
-    };
-
-    cobrinha.unshift(newHead)
+    cobrinha.unshift(factoryCoordenada(snakeX,snakeY));
 }
 
+document.addEventListener('keydown', update);
 velocidade();
